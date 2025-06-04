@@ -1,0 +1,48 @@
+"use client";
+
+import { useSidebar } from "@/context/SidebarContext";
+import AppHeader from "@/layout/AppHeader";
+import AppSidebar from "@/layout/AppSidebar";
+import Backdrop from "@/layout/Backdrop";
+import React from "react";
+
+export default function SubscriptionLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+
+  // Dynamic class for main content margin based on sidebar state
+  const mainContentMargin = isMobileOpen
+    ? "ml-0"
+    : isExpanded || isHovered
+    ? "lg:ml-[290px]"
+    : "lg:ml-[90px]";
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-full">
+        {/* Sidebar and Backdrop */}
+        <AppSidebar />
+        <Backdrop />
+        
+        {/* Main Content Area */}
+        <main className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}>
+          {/* Header */}
+          <AppHeader />
+          
+          {/* Page Content */}
+          <div className="container px-4 pt-6 mx-auto max-w-7xl lg:px-6">
+            <div className="flex flex-col gap-4">
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                Subscription Plans
+              </h1>
+              {children}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
