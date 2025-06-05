@@ -1,7 +1,6 @@
-import React from "react";
+import React, { FC, ReactNode } from "react";
 
 type BadgeVariant = "light" | "solid";
-type BadgeSize = "sm" | "md";
 type BadgeColor =
   | "primary"
   | "success"
@@ -10,35 +9,35 @@ type BadgeColor =
   | "info"
   | "light"
   | "dark";
+type BadgeSize = "sm" | "base" | "lg";
 
 interface BadgeProps {
+  children: ReactNode;
   variant?: BadgeVariant; // Light or solid variant
-  size?: BadgeSize; // Badge size
   color?: BadgeColor; // Badge color
-  startIcon?: React.ReactNode; // Icon at the start
-  endIcon?: React.ReactNode; // Icon at the end
-  children: React.ReactNode; // Badge content
+  size?: BadgeSize; // Badge size
+  startIcon?: ReactNode; // Icon at the start
+  endIcon?: ReactNode; // Icon at the end
 }
 
-const Badge: React.FC<BadgeProps> = ({
+const Badge: FC<BadgeProps> = ({
+  children,
   variant = "light",
   color = "primary",
-  size = "md",
+  size = "base",
   startIcon,
   endIcon,
-  children,
 }) => {
-  const baseStyles =
-    "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium";
+  const baseStyles = "inline-flex items-center font-medium whitespace-nowrap";
 
-  // Define size styles
-  const sizeStyles = {
-    sm: "text-theme-xs", // Smaller padding and font size
-    md: "text-sm", // Default padding and font size
+  const sizeStyles: Record<BadgeSize, string> = {
+    sm: "text-xs px-1.5 py-0.5 rounded",
+    base: "text-sm px-2.5 py-0.5 rounded-md",
+    lg: "text-base px-3 py-1 rounded-lg",
   };
 
-  // Define color styles for variants
-  const variants = {
+  // Define variants
+  const variants: Record<BadgeVariant, Record<BadgeColor, string>> = {
     light: {
       primary:
         "bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400",

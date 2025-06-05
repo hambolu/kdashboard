@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('user');
       setUser(null);
       setIsAuthenticated(false);
-      router.push('/login');
+      router.push('/signin');
     } catch (err) {
       console.error('Logout failed:', err);
       toast.error('Logout failed');

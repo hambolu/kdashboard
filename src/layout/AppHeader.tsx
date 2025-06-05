@@ -35,7 +35,7 @@ const AppHeader: React.FC = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 flex w-full bg-white border-b border-gray-200 z-40 dark:border-gray-800 dark:bg-gray-900">
+    <header className="sticky top-0 flex w-full bg-white border-b border-gray-200 z-50 dark:border-gray-800 dark:bg-gray-900">
       <div className="flex flex-grow items-center justify-end px-4 py-4 lg:px-6">
         <div className="flex items-center gap-3 2xsm:gap-4">
           <button

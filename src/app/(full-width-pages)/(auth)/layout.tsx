@@ -1,5 +1,4 @@
 import GridShape from "@/components/common/GridShape";
-import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import Image from "next/image";
@@ -12,31 +11,23 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <ThemeProvider>
-        <div className="relative flex lg:flex-row w-full h-screen justify-center flex-col  dark:bg-gray-900 sm:p-0">
-          {children}
-          <div className="lg:w-1/2 w-full h-full bg-brand-950 dark:bg-white/5 lg:grid items-center hidden">
-            <div className="relative items-center justify-center  flex z-1">
-              {/* <!-- ===== Common Grid Shape Start ===== --> */}
-              <GridShape />
-              <div className="flex flex-col items-center max-w-xs">
-                <Link href="/" className="block mb-4">
-                  <Image
-                    width={231}
-                    height={48}
-                    src="/images/logo/main_logo.svg"
-                    alt="kaaafika"
-                  />
-                </Link>
-                <p className="text-center text-gray-400 dark:text-white/60">
-                  kaaafika Unlock Financial Opportunities.
-                </p>
-              </div>
+        <div className="mx-auto flex min-h-screen max-w-[1440px] items-center justify-center p-5 lg:p-10">
+          <div className="w-full max-w-[440px] rounded-2xl bg-white p-8 shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] dark:bg-gray-800/50 lg:p-12">
+            <div className="mb-10 text-center">
+              <Link href="/" className="inline-block">
+                <Image
+                  width={180}
+                  height={37}
+                  src="/images/logo/main_logo.svg"
+                  alt="kaaafika"
+                  className="dark:invert"
+                  priority
+                />
+              </Link>
             </div>
-          </div>
-          <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
-            <ThemeTogglerTwo />
+            {children}
           </div>
         </div>
       </ThemeProvider>

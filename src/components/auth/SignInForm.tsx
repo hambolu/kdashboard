@@ -23,6 +23,7 @@ export default function SignInForm() {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
   };
+  
 
   const handleSubmit = async () => {
     setError("");
@@ -35,19 +36,18 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="flex flex-col flex-1 lg:w-1/2 w-full">
-      <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
+    <div className="flex flex-col flex-1 justify-center w-full">
+      <div className="flex flex-col justify-center w-full max-w-md mx-auto px-6 lg:px-0">
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
               Sign In
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-theme-sm text-gray-500 dark:text-gray-400">
               Enter your email and password to sign in!
             </p>
-          </div>
-          {error && (
-            <div className="mb-4 text-sm text-red-500">{error}</div>
+          </div>            {error && (
+            <div className="mb-4 text-sm text-error-500 dark:text-error-400">{error}</div>
           )}
           <div className="space-y-6">
             <div>
@@ -100,10 +100,8 @@ export default function SignInForm() {
                 Sign in
               </Button>
             </div>
-          </div>
-
-          <div className="mt-5">
-            <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
+          </div>            <div className="mt-6">
+            <p className="text-theme-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
               Don&apos;t have an account? {""}
               <Link
                 href="/signup"

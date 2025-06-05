@@ -35,9 +35,7 @@ export default function SubscriptionLayout({
           {/* Page Content */}
           <div className="container px-4 pt-6 mx-auto max-w-7xl lg:px-6">
             <div className="flex flex-col gap-4">
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                Subscription Plans
-              </h1>
+              
               {children}
             </div>
           </div>
