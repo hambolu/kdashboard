@@ -115,14 +115,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      console.debug('[Auth Debug] Checking auth state:', { 
+      const storedUser = localStorage.getItem('user');
+      
+      console.debug('[Auth Debug] Auth check state:', { 
         hasToken: !!token,
+        hasUser: !!storedUser,
         isAuthenticated,
         path: window.location.pathname 
       });
       
-      if (!token) {
-        throw new Error('No token found');
+      if (!token || !storedUser) {
+        throw new Error('No auth data found');
       }
 
       const response = await api.get<ApiResponse<User>>('/api/v1/admin/profile');
@@ -131,19 +134,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Invalid profile data received');
       }
 
-      // Update stored user data
-      localStorage.setItem('user', JSON.stringify(response.data.data));
+      // Update stored user data if different
+      const currentUser = JSON.stringify(response.data.data);
+      if (currentUser !== storedUser) {
+        localStorage.setItem('user', currentUser);
+      }
+
       setUser(response.data.data);
       setIsAuthenticated(true);
       
       console.debug('[Auth Debug] Auth check successful');
     } catch (err) {
-      console.error('[Auth Debug] Authentication check failed:', err);
+      console.error('[Auth Debug] Auth check failed:', err);
       setIsAuthenticated(false);
       setUser(null);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      router.push('/signin');
+      
+      // Only redirect if we're not already on the signin page
+      if (window.location.pathname !== '/signin') {
+        router.push('/signin');
+      }
     } finally {
       setLoading(false);
     }
@@ -151,6 +162,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.debug('[Auth Debug] Starting login process...');
+      
       const response = await api.post<ApiResponse<LoginResponse>>('/api/v1/admin/login', { 
         email, 
         password 
@@ -158,34 +171,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { token, user: userData } = response.data.data;
       
-      // Store auth data
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      // Clear any existing auth data first
+      localStorage.clear();
       
-      // Verify storage was successful
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      
-      console.debug('[Auth Debug] Auth data stored:', {
-        hasToken: !!storedToken,
-        hasUser: !!storedUser,
-        timestamp: new Date().toISOString()
-      });
+      // Store auth data and verify immediately
+      try {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Verify storage was successful
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+        
+        console.debug('[Auth Debug] Login storage check:', {
+          tokenStored: storedToken === token,
+          userStored: !!storedUser,
+          token: token.substring(0, 10) + '...',
+          timestamp: new Date().toISOString()
+        });
 
-      if (!storedToken || !storedUser) {
-        throw new Error('Failed to store authentication data');
+        if (!storedToken || !storedUser) {
+          throw new Error('Storage verification failed');
+        }
+
+        if (storedToken !== token) {
+          throw new Error('Token verification failed');
+        }
+
+        // Test parsing the stored user data
+        const parsedUser = JSON.parse(storedUser);
+        if (!parsedUser || !parsedUser.id) {
+          throw new Error('User data verification failed');
+        }
+
+        // Update state only after storage is verified
+        setUser(userData);
+        setIsAuthenticated(true);
+        
+        // Force an immediate auth check before navigation
+        await checkAuth();
+
+        console.debug('[Auth Debug] Login successful, navigating to dashboard...');
+        
+        // Use router.push with await to ensure navigation completes
+        await router.push('/dashboard');
+      } catch (error) {
+        console.error('[Auth Debug] Storage error during login:', error);
+        throw new Error('Failed to store authentication data: ' + (error instanceof Error ? error.message : 'Unknown error'));
       }
-
-      setUser(userData);
-      setIsAuthenticated(true);
-      
-      // Immediate auth check after login
-      await checkAuth();
-      
-      router.push('/dashboard');
     } catch (err: any) {
-      console.error('[Auth Debug] Login failed:', err);
+      console.error('[Auth Debug] Login failed:', {
+        error: err,
+        message: err?.response?.data?.message || err?.message,
+        status: err?.response?.status
+      });
       toast.error(err?.response?.data?.message || err?.message || 'Login failed');
+      // Clear any partial auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       throw err;
     }
   };
