@@ -57,37 +57,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = () => {
       try {
-        const storedToken = localStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
         
-        if (storedToken && storedUser) {
+        console.debug('[Auth Debug] Initializing auth state:', {
+          hasToken: !!token,
+          hasStoredUser: !!storedUser,
+          path: window.location.pathname
+        });
+        
+        if (token && storedUser) {
           try {
-            // Validate that storedUser is actually a JSON string
-            if (typeof storedUser !== 'string' || !storedUser.trim().startsWith('{')) {
-              throw new Error('Invalid user data format');
-            }
-
             const parsedUser = JSON.parse(storedUser);
-            
-            // Validate the parsed user object has required fields
-            if (!parsedUser || typeof parsedUser !== 'object' || 
-                !parsedUser.id || !parsedUser.email || typeof parsedUser.is_active !== 'boolean') {
+            if (!parsedUser || typeof parsedUser !== 'object' || !parsedUser.id) {
               throw new Error('Invalid user data structure');
             }
-
             setUser(parsedUser);
             setIsAuthenticated(true);
+            console.debug('[Auth Debug] Auth state initialized successfully');
           } catch (parseError) {
-            console.error('Failed to parse stored user data:', parseError);
-            // Clear invalid data
+            console.error('[Auth Debug] Failed to parse stored user data:', parseError);
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            toast.error('Session data was corrupted, please sign in again');
+            toast.error('Session expired, please sign in again');
           }
         }
       } catch (error) {
-        console.error('Error initializing auth state:', error);
-        // Clear potentially corrupted data
+        console.error('[Auth Debug] Error initializing auth state:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       } finally {
@@ -96,45 +92,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeAuth();
-  }, []);
+    
+    // Set up storage event listener to sync auth state across tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token') {
+        console.debug('[Auth Debug] Token changed in another tab');
+        if (!e.newValue) {
+          setIsAuthenticated(false);
+          setUser(null);
+          router.push('/signin');
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [router]);
 
   const checkAuth = async () => {
+    if (loading) return; // Prevent check during initial load
+    
     setLoading(true);
     try {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      console.debug('[Auth Debug] Checking auth state:', { 
+        hasToken: !!token,
+        isAuthenticated,
+        path: window.location.pathname 
+      });
       
-      if (!storedToken || !storedUser) {
-        console.log('Missing auth data, clearing state');
-        setIsAuthenticated(false);
-        setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setLoading(false);
-        return;
+      if (!token) {
+        throw new Error('No token found');
       }
 
       const response = await api.get<ApiResponse<User>>('/api/v1/admin/profile');
-
+      
       if (!response.data?.data) {
         throw new Error('Invalid profile data received');
       }
 
-      // Update stored user data if it's different
-      const currentStoredUser = JSON.stringify(response.data.data);
-      if (currentStoredUser !== storedUser) {
-        localStorage.setItem('user', currentStoredUser);
-      }
-
+      // Update stored user data
+      localStorage.setItem('user', JSON.stringify(response.data.data));
       setUser(response.data.data);
       setIsAuthenticated(true);
+      
+      console.debug('[Auth Debug] Auth check successful');
     } catch (err) {
-      console.error('Authentication check failed:', err);
+      console.error('[Auth Debug] Authentication check failed:', err);
       setIsAuthenticated(false);
       setUser(null);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      toast.error('Authentication check failed');
+      router.push('/signin');
     } finally {
       setLoading(false);
     }
@@ -147,35 +156,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password 
       });
 
-      if (!response.data?.data) {
-        throw new Error('Invalid login response');
-      }
-
+      const { token, user: userData } = response.data.data;
+      
       // Store auth data
-      localStorage.setItem('token', response.data.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
       
       // Verify storage was successful
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
       
-      console.log('Auth data stored:', {
+      console.debug('[Auth Debug] Auth data stored:', {
         hasToken: !!storedToken,
-        hasUser: !!storedUser
+        hasUser: !!storedUser,
+        timestamp: new Date().toISOString()
       });
 
       if (!storedToken || !storedUser) {
         throw new Error('Failed to store authentication data');
       }
 
-      // Update state
-      setUser(response.data.data.user);
+      setUser(userData);
       setIsAuthenticated(true);
       
-      // Navigate to dashboard
+      // Immediate auth check after login
+      await checkAuth();
+      
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('Login failed:', err);
+      console.error('[Auth Debug] Login failed:', err);
       toast.error(err?.response?.data?.message || err?.message || 'Login failed');
       throw err;
     }
