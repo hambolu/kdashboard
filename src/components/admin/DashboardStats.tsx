@@ -2,8 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card/Card";
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { API_URL } from "@/config";
+import { api } from "@/config";
 import { useAuth } from "@/context/AuthContext";
 import clsx from "clsx";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -86,15 +85,7 @@ export function DashboardStats() {
           return;
         }
 
-        const token = localStorage.getItem('token');
-        const endpoint = `${API_URL}/api/v1/admin/dashboard`;
-        
-        const response = await axios.get<{success: boolean; message: string; data: StatsData}>(endpoint, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
+        const response = await api.get<{success: boolean; message: string; data: StatsData}>('/api/v1/admin/dashboard');
 
         if (response.data.success && response.data.data) {
           setStats(response.data.data);

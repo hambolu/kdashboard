@@ -3,6 +3,18 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { api } from '@/config';
+
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+}
+
+interface LoginResponse {
+  token: string;
+  user: User;
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -89,11 +101,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAuth = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      console.log('Checking auth state:', { hasToken: !!token, hasStoredUser: !!storedUser });
       
-      if (!token || !storedUser) {
+      if (!storedToken || !storedUser) {
         console.log('Missing auth data, clearing state');
         setIsAuthenticated(false);
         setUser(null);
@@ -103,32 +114,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/v1/admin/profile`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get<ApiResponse<User>>('/api/v1/admin/profile');
 
-      if (!response.ok) {
-        console.error('Profile check failed:', response.status);
-        throw new Error('Authentication check failed');
-      }
-
-      const result = await response.json();
-      
-      if (!result.data) {
+      if (!response.data?.data) {
         throw new Error('Invalid profile data received');
       }
 
       // Update stored user data if it's different
-      const currentStoredUser = JSON.stringify(result.data);
+      const currentStoredUser = JSON.stringify(response.data.data);
       if (currentStoredUser !== storedUser) {
         localStorage.setItem('user', currentStoredUser);
       }
 
-      setUser(result.data);
+      setUser(response.data.data);
       setIsAuthenticated(true);
     } catch (err) {
       console.error('Authentication check failed:', err);
@@ -144,24 +142,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/admin/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const response = await api.post<ApiResponse<LoginResponse>>('/api/v1/admin/login', { 
+        email, 
+        password 
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Login failed');
+      if (!response.data?.data) {
+        throw new Error('Invalid login response');
       }
 
       // Store auth data
-      localStorage.setItem('token', result.data.token);
-      localStorage.setItem('user', JSON.stringify(result.data.user));
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
       
       // Verify storage was successful
       const storedToken = localStorage.getItem('token');
@@ -177,33 +169,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Update state
-      setUser(result.data.user);
+      setUser(response.data.data.user);
       setIsAuthenticated(true);
       
       // Navigate to dashboard
       router.push('/dashboard');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login failed:', err);
-      toast.error(err instanceof Error ? err.message : 'Login failed');
+      toast.error(err?.response?.data?.message || err?.message || 'Login failed');
       throw err;
     }
   };
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          await fetch(`${API_URL}/api/v1/admin/logout`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/json',
-            }
-          });
-        } catch (error) {
-          console.error('Logout API call failed:', error);
-        }
+      try {
+        await api.post('/api/v1/admin/logout');
+      } catch (error) {
+        console.error('Logout API call failed:', error);
       }
 
       // Clear auth state regardless of API call result
