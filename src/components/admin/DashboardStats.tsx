@@ -85,7 +85,30 @@ export function DashboardStats() {
           return;
         }
 
-        const response = await api.get<{success: boolean; message: string; data: StatsData}>('/api/v1/admin/dashboard');
+        // Get token directly
+        const token = localStorage.getItem('token');
+        console.debug('[Dashboard Debug] Fetching stats:', { 
+          hasToken: !!token,
+          isAuthenticated,
+          path: '/api/v1/admin/dashboard'
+        });
+
+        if (!token) {
+          throw new Error('No auth token found');
+        }
+
+        const response = await api.get<{success: boolean; message: string; data: StatsData}>('/api/v1/admin/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        // Log successful response
+        console.debug('[Dashboard Debug] Stats response:', {
+          success: response.data.success,
+          hasData: !!response.data.data
+        });
 
         if (response.data.success && response.data.data) {
           setStats(response.data.data);
@@ -94,7 +117,13 @@ export function DashboardStats() {
           throw new Error(response.data.message || 'Failed to fetch dashboard data');
         }
       } catch (err: any) {
-        console.error('Dashboard stats error:', err);
+        console.error('[Dashboard Debug] Error details:', {
+          status: err.response?.status,
+          message: err.message,
+          responseData: err.response?.data,
+          headers: err.response?.headers
+        });
+
         const errorMessage = err.response?.data?.message || err.message || 'Failed to load dashboard data';
         setError(errorMessage);
 
@@ -103,7 +132,7 @@ export function DashboardStats() {
           setRetryCount(prev => prev + 1);
           setTimeout(() => {
             fetchStats();
-          }, Math.min(1000 * Math.pow(2, retryCount), 10000)); // Exponential backoff
+          }, Math.min(1000 * Math.pow(2, retryCount), 10000));
         }
       } finally {
         setLoading(false);
@@ -113,7 +142,7 @@ export function DashboardStats() {
     if (isAuthenticated) {
       fetchStats();
     }
-  }, [isAuthenticated, retryCount]); // Add retryCount to dependency array
+  }, [isAuthenticated, retryCount]);
 
   if (loading) {
     return <LoadingSpinner />;

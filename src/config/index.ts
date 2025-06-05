@@ -19,8 +19,7 @@ export const api = axios.create({
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
-  },
-  withCredentials: true // Enable sending cookies in cross-origin requests
+  }
 });
 
 // Add request interceptor to automatically add token
@@ -33,7 +32,8 @@ api.interceptors.request.use((config) => {
     console.debug('[Auth Debug] Request config:', { 
       url: config.url,
       hasAuthHeader: !!config.headers.Authorization,
-      method: config.method
+      method: config.method,
+      headers: config.headers
     });
   } else {
     console.warn('[Auth Debug] No token found for request:', {
@@ -58,17 +58,25 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    console.error('[Auth Debug] Response error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+      headers: error.config?.headers
+    });
+
     if (error.response?.status === 401) {
       console.warn('[Auth Debug] 401 error detected:', {
         url: error.config?.url,
-        hasToken: !!getAuthToken()
+        hasToken: !!getAuthToken(),
+        headers: error.config?.headers
       });
+      
       // Clear auth data on 401
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // Use router navigation in production instead of window.location
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/signin') {
         window.location.href = '/signin';
       }
     }
