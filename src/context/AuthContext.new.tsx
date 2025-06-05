@@ -49,35 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = localStorage.getItem('user');
         
         if (storedToken && storedUser) {
-          try {
-            // Validate that storedUser is actually a JSON string
-            if (typeof storedUser !== 'string' || !storedUser.trim().startsWith('{')) {
-              throw new Error('Invalid user data format');
-            }
-
-            const parsedUser = JSON.parse(storedUser);
-            
-            // Validate the parsed user object has required fields
-            if (!parsedUser || typeof parsedUser !== 'object' || 
-                !parsedUser.id || !parsedUser.email || typeof parsedUser.is_active !== 'boolean') {
-              throw new Error('Invalid user data structure');
-            }
-
-            setUser(parsedUser);
-            setIsAuthenticated(true);
-          } catch (parseError) {
-            console.error('Failed to parse stored user data:', parseError);
-            // Clear invalid data
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            toast.error('Session data was corrupted, please sign in again');
-          }
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
         }
       } catch (error) {
         console.error('Error initializing auth state:', error);
-        // Clear potentially corrupted data
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
       } finally {
         setLoading(false);
       }

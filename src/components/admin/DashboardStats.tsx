@@ -73,62 +73,56 @@ export function DashboardStats() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { logout } = useAuth();
-
+  const { isAuthenticated, user } = useAuth();
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        //console.log('Fetching dashboard stats with token:', token);
-        if (!token) {
-          console.log('No admin token found, redirecting to login...');
-          setError('Please log in as an administrator to access the dashboard');
-          await logout();
+        if (!isAuthenticated) {
+          setLoading(false);
+          setError('Please log in to access the dashboard');
           return;
         }
 
+        const token = localStorage.getItem('token');
         const endpoint = `${API_URL}/api/v1/admin/dashboard`;
+        
         const response = await axios.get<{success: boolean; message: string; data: StatsData}>(endpoint, {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           }
         });
-        
+
         if (response.data.success && response.data.data) {
           setStats(response.data.data);
           setError(null);
         } else {
-          throw new Error(response.data.message || 'Failed to fetch dashboard stats');
+          throw new Error(response.data.message || 'Failed to fetch dashboard data');
         }
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        let errorMessage = 'An error occurred while fetching dashboard statistics';
-        
-        if (error && typeof error === 'object' && 'response' in error) {
-          const axiosError = error as { response?: { status: number; data?: { message?: string } } };
-          
-          if (axiosError.response?.status === 401) {
-            //console.log('Admin token expired or invalid, redirecting to login...');
-            errorMessage = 'Your administrator session has expired. Please log in again.';
-            await logout();
-          } else if (axiosError.response?.data?.message) {
-            errorMessage = axiosError.response.data.message;
-          }
-        } else if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-        
+      } catch (err: any) {
+        console.error('Dashboard stats error:', err);
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to load dashboard data';
         setError(errorMessage);
+
+        // Only retry on network errors or 5xx server errors
+        if (retryCount < maxRetries && (!err.response || err.response.status >= 500)) {
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => {
+            fetchStats();
+          }, Math.min(1000 * Math.pow(2, retryCount), 10000)); // Exponential backoff
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
-  }, [logout]);
+    if (isAuthenticated) {
+      fetchStats();
+    }
+  }, [isAuthenticated, retryCount]); // Add retryCount to dependency array
 
   if (loading) {
     return <LoadingSpinner />;
