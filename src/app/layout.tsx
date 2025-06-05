@@ -7,8 +7,12 @@ import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { Suspense } from 'react';
 
+// Configure Outfit font with display: swap
 const outfit = Outfit({
-  subsets: ["latin"],
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  adjustFontFallback: true,
 });
 
 function Loading() {
