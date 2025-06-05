@@ -160,6 +160,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const saveAuthData = (token: string, userData: User) => {
+    try {
+      // Validate user data before storing
+      if (!userData || typeof userData !== 'object') {
+        throw new Error('Invalid user data format');
+      }
+
+      // Validate required user fields
+      if (!userData.id || !userData.email || typeof userData.is_active !== 'boolean') {
+        console.error('[Auth Debug] Invalid user data structure:', userData);
+        throw new Error('Missing required user data fields');
+      }
+
+      // First try to stringify the user data to validate it
+      const userJson = JSON.stringify(userData);
+      if (!userJson) {
+        throw new Error('Failed to serialize user data');
+      }
+
+      // Clear existing data first
+      localStorage.clear();
+
+      // Store new data
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', userJson);
+
+      // Verify storage
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (!storedToken || storedToken !== token) {
+        throw new Error('Token storage verification failed');
+      }
+
+      try {
+        const parsedUser = JSON.parse(storedUser || '');
+        if (!parsedUser.id) {
+          throw new Error('Stored user data is invalid');
+        }
+      } catch (parseError) {
+        console.error('[Auth Debug] Stored user data parse error:', parseError);
+        throw new Error('User data storage verification failed');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[Auth Debug] Auth data storage error:', error);
+      // Clean up on failure
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      throw error;
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       console.debug('[Auth Debug] Starting login process...');
@@ -169,66 +223,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password 
       });
 
-      const { token, user: userData } = response.data.data;
-      
-      // Clear any existing auth data first
-      localStorage.clear();
-      
-      // Store auth data and verify immediately
-      try {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        // Verify storage was successful
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-        
-        console.debug('[Auth Debug] Login storage check:', {
-          tokenStored: storedToken === token,
-          userStored: !!storedUser,
-          token: token.substring(0, 10) + '...',
-          timestamp: new Date().toISOString()
-        });
-
-        if (!storedToken || !storedUser) {
-          throw new Error('Storage verification failed');
-        }
-
-        if (storedToken !== token) {
-          throw new Error('Token verification failed');
-        }
-
-        // Test parsing the stored user data
-        const parsedUser = JSON.parse(storedUser);
-        if (!parsedUser || !parsedUser.id) {
-          throw new Error('User data verification failed');
-        }
-
-        // Update state only after storage is verified
-        setUser(userData);
-        setIsAuthenticated(true);
-        
-        // Force an immediate auth check before navigation
-        await checkAuth();
-
-        console.debug('[Auth Debug] Login successful, navigating to dashboard...');
-        
-        // Use router.push with await to ensure navigation completes
-        await router.push('/dashboard');
-      } catch (error) {
-        console.error('[Auth Debug] Storage error during login:', error);
-        throw new Error('Failed to store authentication data: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      if (!response.data?.data?.token || !response.data?.data?.user) {
+        console.error('[Auth Debug] Invalid login response:', response.data);
+        throw new Error('Invalid login response format');
       }
+
+      const { token, user: userData } = response.data.data;
+
+      console.debug('[Auth Debug] Login response data:', {
+        hasToken: !!token,
+        userData: {
+          id: userData.id,
+          email: userData.email,
+          is_active: userData.is_active
+        }
+      });
+
+      // Save auth data with validation
+      await saveAuthData(token, userData);
+
+      // Update state
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      // Force an immediate auth check before navigation
+      await checkAuth();
+
+      console.debug('[Auth Debug] Login successful, navigating to dashboard...');
+      
+      // Navigate to dashboard
+      await router.push('/dashboard');
     } catch (err: any) {
       console.error('[Auth Debug] Login failed:', {
         error: err,
-        message: err?.response?.data?.message || err?.message,
-        status: err?.response?.status
+        message: err?.message || 'Unknown error',
+        response: err?.response?.data
       });
       toast.error(err?.response?.data?.message || err?.message || 'Login failed');
-      // Clear any partial auth data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
       throw err;
     }
   };
