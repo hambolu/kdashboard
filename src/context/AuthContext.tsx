@@ -12,8 +12,8 @@ interface ApiResponse<T> {
 }
 
 interface LoginResponse {
+  admin: User;
   token: string;
-  user: User;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -22,7 +22,11 @@ export interface User {
   id: number;
   email: string;
   name?: string;
+  phone?: string;
+  profile_picture?: string | null;
+  role?: string;
   is_active: boolean;
+  email_verified_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -223,18 +227,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password 
       });
 
-      if (!response.data?.data?.token || !response.data?.data?.user) {
-        console.error('[Auth Debug] Invalid login response:', response.data);
+      console.debug('[Auth Debug] Raw login response:', response.data);
+
+      if (!response.data?.success || !response.data?.data?.token || !response.data?.data?.admin) {
+        console.error('[Auth Debug] Invalid login response structure:', response.data);
         throw new Error('Invalid login response format');
       }
 
-      const { token, user: userData } = response.data.data;
+      const { token, admin: userData } = response.data.data;
 
       console.debug('[Auth Debug] Login response data:', {
         hasToken: !!token,
         userData: {
           id: userData.id,
           email: userData.email,
+          role: userData.role,
           is_active: userData.is_active
         }
       });
