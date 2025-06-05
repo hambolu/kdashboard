@@ -51,6 +51,29 @@ export const AuthContext = createContext<AuthContextType>({
   syncAuthState: () => ({ token: null, userData: null }),
 });
 
+// Custom toast styles
+const successToast = (message: string) => toast.success(message, {
+  style: {
+    background: '#10B981',
+    color: '#FFFFFF',
+  },
+  iconTheme: {
+    primary: '#FFFFFF',
+    secondary: '#10B981',
+  },
+});
+
+const errorToast = (message: string) => toast.error(message, {
+  style: {
+    background: '#EF4444',
+    color: '#FFFFFF',
+  },
+  iconTheme: {
+    primary: '#FFFFFF',
+    secondary: '#EF4444',
+  },
+});
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -236,16 +259,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { token, admin: userData } = response.data.data;
 
-      console.debug('[Auth Debug] Login response data:', {
-        hasToken: !!token,
-        userData: {
-          id: userData.id,
-          email: userData.email,
-          role: userData.role,
-          is_active: userData.is_active
-        }
-      });
-
       // Save auth data with validation
       await saveAuthData(token, userData);
 
@@ -253,20 +266,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
       setIsAuthenticated(true);
 
-      // Force an immediate auth check before navigation
-      await checkAuth();
+      // Show success message
+      successToast('Login successful');
+
+      // Set a small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       console.debug('[Auth Debug] Login successful, navigating to dashboard...');
       
-      // Navigate to dashboard
-      await router.push('/dashboard');
+      try {
+        await router.push('/dashboard');
+      } catch (navError) {
+        console.error('[Auth Debug] Navigation error:', navError);
+        errorToast('Error navigating to dashboard');
+      }
+
     } catch (err: any) {
       console.error('[Auth Debug] Login failed:', {
         error: err,
         message: err?.message || 'Unknown error',
         response: err?.response?.data
       });
-      toast.error(err?.response?.data?.message || err?.message || 'Login failed');
+
+      // Handle validation errors
+      if (err.response?.data?.errors) {
+        const errorMessages = Object.entries(err.response.data.errors)
+          .map(([field, messages]) => {
+            if (Array.isArray(messages)) {
+              return messages[0]; // Take first message for each field
+            }
+            return `${field}: ${messages}`;
+          })
+          .join('. ');
+        errorToast(errorMessages);
+      } else {
+        // Handle other types of errors
+        errorToast(err?.response?.data?.message || err?.message || 'Login failed');
+      }
+      
       throw err;
     }
   };
@@ -275,6 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       try {
         await api.post('/api/v1/admin/logout');
+        successToast('Logged out successfully');
       } catch (error) {
         console.error('Logout API call failed:', error);
       }
@@ -284,16 +322,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('user');
       setUser(null);
       setIsAuthenticated(false);
-      router.push('/signin');
+      
+      try {
+        await router.push('/signin');
+      } catch (navError) {
+        console.error('[Auth Debug] Navigation error during logout:', navError);
+        // Force a page reload as a fallback
+        window.location.href = '/signin';
+      }
     } catch (err) {
       console.error('Logout failed:', err);
-      toast.error('Logout failed');
+      errorToast('Logout failed');
       // Still clear local state even if the API call fails
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
       setIsAuthenticated(false);
-      router.push('/signin');
+      window.location.href = '/signin';
     }
   };
 
