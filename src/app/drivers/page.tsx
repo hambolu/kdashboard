@@ -2,26 +2,23 @@
 
 import React, { useState, useEffect, ChangeEvent, useCallback } from 'react';
 import Image from 'next/image';
-import {
-  Box,
-  Typography,
-  Card,
-  Grid,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Chip,
-  TablePagination,
-  TextField,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import Card from '@mui/material/Card';
+import Grid from '@mui/material/Grid';
+import Button from '@mui/material/Button';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Chip from '@mui/material/Chip';
+import TablePagination from '@mui/material/TablePagination';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { Driver, driverApi, DriverStats, DriverCategory } from '@/api/driverApi';
 import PageContainer from '@/app/(DashboardLayout)/components/container/PageContainer';
 import toast from 'react-hot-toast';
@@ -176,31 +173,31 @@ const DriversPage = () => {
       <Box>
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid key="total" item xs={12} sm={6} md={2} component="div">
+          <Grid item xs={12} sm={6} md={2}>
             <Card sx={{ p: 3 }}>
               <Typography variant="subtitle2" color="textSecondary">Total Drivers</Typography>
               <Typography variant="h4">{stats?.total_drivers || 0}</Typography>
             </Card>
           </Grid>
-          <Grid key="active" item xs={12} sm={6} md={2} component="div">
+          <Grid item xs={12} sm={6} md={2}>
             <Card sx={{ p: 3 }}>
               <Typography variant="subtitle2" color="textSecondary">Active Drivers</Typography>
               <Typography variant="h4">{stats?.active_drivers || 0}</Typography>
             </Card>
           </Grid>
-          <Grid key="approved" item xs={12} sm={6} md={2} component="div">
+          <Grid item xs={12} sm={6} md={2}>
             <Card sx={{ p: 3 }}>
               <Typography variant="subtitle2" color="textSecondary">Approved Drivers</Typography>
               <Typography variant="h4">{stats?.approved_drivers || 0}</Typography>
             </Card>
           </Grid>
-          <Grid key="pending" item xs={12} sm={6} md={2} component="div">
+          <Grid item xs={12} sm={6} md={2}>
             <Card sx={{ p: 3 }}>
               <Typography variant="subtitle2" color="textSecondary">Pending Approval</Typography>
               <Typography variant="h4">{stats?.pending_drivers || 0}</Typography>
             </Card>
           </Grid>
-          <Grid key="suspended" item xs={12} sm={6} md={2} component="div">
+          <Grid item xs={12} sm={6} md={2}>
             <Card sx={{ p: 3 }}>
               <Typography variant="subtitle2" color="textSecondary">Suspended Drivers</Typography>
               <Typography variant="h4">{stats?.suspended_drivers || 0}</Typography>

@@ -2,7 +2,7 @@
 
 import { settingsApi, type SettingGroupType } from "@/api/settingsApi";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,6 +85,7 @@ export default function SettingsPage() {
   const [editingSettingKey, setEditingSettingKey] = useState('');
   const [editingSettingValue, setEditingSettingValue] = useState('');
   const [editingSettingGroup, setEditingSettingGroup] = useState('');
+  const { toast } = useToast();
 
   const loadSettings = useCallback(async () => {
     try {
@@ -101,7 +102,7 @@ export default function SettingsPage() {
       });
       setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadSettings();

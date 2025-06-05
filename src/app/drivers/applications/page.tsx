@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from 'react';
 import { driverApi } from '@/api/driverApi';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -49,6 +49,7 @@ interface PaginationData {
 export default function DriverApplicationsPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<number | null>(null);
   const [pagination, setPagination] = useState<PaginationData>({
